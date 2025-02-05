@@ -1,0 +1,145 @@
+1. Assuming the system currently has three microservices: Customer API, Master Data API,
+and Transaction Data API, there is a new feature that requires data from all three
+microservices to be displayed in near real-time. The current technology stack includes
+REST APIs and an RDBMS database. How would you design a new API for this feature?
+
+-- ANS --
+as my experience, I would create new service using nestjs with single api path 
+(neglect other service like regiter, login etc) let's say '/api/all-data'. In my service will call 3 apis 
+(Customer API, Master Data API, and Transaction Data API) in parallel and merge all response to one like 
+
+
+{
+    status: 200,
+    message: 'Success',
+    data: {
+    "customer": {
+        "id": "4c6e4d4c-0234-4851-b3c6-d93f4d72fac4",
+        "name": "Krid Suwannawat",
+        "email": "krid123435@hotmail.com",
+        "phone": "0970428515"
+    },
+    "masterData": {
+        "id": "fa244d63-4bda-4007-9167-aa744bd1e7c4",
+        "description": "some description"
+    },
+    "transactionData": {
+        "transactionId": "c2afc19c-d392-428d-aaf6-52b214e866f5",
+        "description": "some description"
+    }
+    },
+    current_page: 1,
+    per_page: 100,
+    total_items: 1000,
+}
+
+============================================================================================================
+
+2. Assuming the team has started planning a new project, the project manager asks you for a
+performance test strategy plan for this release. How would you recommend proceeding to
+the project manager?
+
+-- ANS --
+
+I would suggest by start with unit test for each FE and BE => Integration test => E2E => performance test => load test
+
+============================================================================================================
+
+3. Design and develop two APIs using NestJS and Postgres with the following
+specifications:
+    1. Create a Multilingual Product API: Develop an API that allows for the creation
+        of products, each with attributes for name and description that support multiple
+        languages.
+    2. Multilingual Product Search API: Implement an API that enables searching for
+        products by name in any language and returns results in a paginated format.
+        Additional Requirements:
+            • Validation: Outline how you will validate data inputs in both APIs to ensure data
+            integrity.
+            • Database Design: Describe the database schema and the approach you will use to
+            handle multilingual support for product information.
+            • Testing Strategy: Explain your strategy for testing these APIs, including how you
+            will handle unit tests, integration tests, and any end-to-end testing considerations.
+Please provide a detailed explanation of your design decisions for each of these aspects
+
+-- ANS -- 
+
+api lists:
+
+POST	/products	    Creates a product
+GET	    /products/:id	Retrieves product details
+PATCH	/products/:id	Updates product
+DELETE	/products/:id	Deletes a product
+
+search api:
+GET	/products/search?query=shoe&lang=en&page=1&limit=10
+
+validation strategy:
+use class-validator
+
+export class CreateProductDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TranslationDto)
+  translations: TranslationDto[];
+}
+
+export class TranslationDto {
+  @IsString()
+  @IsNotEmpty()
+  languageCode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  description: string;
+}
+
+schema:
+
+@Entity()
+export class Product {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @OneToMany(() => ProductTranslation, translation => translation.product, { cascade: true })
+  translations: ProductTranslation[];
+}
+
+@Entity()
+export class ProductTranslation {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @ManyToOne(() => Product, product => product.translations, { onDelete: 'CASCADE' })
+  product: Product;
+
+  @Column()
+  languageCode: string;
+
+  @Column()
+  name: string;
+
+  @Column()
+  description: string;
+}
+
+search query:
+async searchProducts(query: string, languageCode: string, page = 1, limit = 10) {
+    return this.productTranslationRepository.createQueryBuilder('translation')
+      .innerJoin('translation.product', 'product')
+      .where('translation.languageCode = :langCode', { langCode: languageCode })
+      .andWhere('translation.name ILIKE :query', { query: `%${query}%` })
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+    }
+
+testing strategy:
+unit test => integration test => E2E test
+
+
+
+
