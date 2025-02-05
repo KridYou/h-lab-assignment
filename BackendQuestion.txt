@@ -65,9 +65,9 @@ Please provide a detailed explanation of your design decisions for each of these
 
 api lists:
 
-POST	/products	    Creates a product
+POST	  /products	    Creates a product
 GET	    /products/:id	Retrieves product details
-PATCH	/products/:id	Updates product
+PATCH	  /products/:id	Updates product
 DELETE	/products/:id	Deletes a product
 
 search api:
@@ -82,7 +82,7 @@ export class CreateProductDto {
   @Type(() => TranslationDto)
   translations: TranslationDto[];
 }
-
+ 
 export class TranslationDto {
   @IsString()
   @IsNotEmpty()
@@ -139,7 +139,3 @@ async searchProducts(query: string, languageCode: string, page = 1, limit = 10) 
 
 testing strategy:
 unit test => integration test => E2E test
-
-
-
-
